@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Panel de Administración - Sistema de Registro de Conductores">
+    <title>Panel Administrativo | TransControl</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%236366f1'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E">
+    
+    <!-- Preconnect para fuentes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+    <!-- =========================================
+         SECCIÓN DE LOGIN
+         ========================================= -->
+    <div id="loginSection" class="login-page">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                </div>
+                <h1>Iniciar Sesión</h1>
+                <p>Ingrese sus credenciales para acceder al panel</p>
+            </div>
+
+            <form id="loginForm" class="login-form" novalidate>
+                <div class="form-group">
+                    <label for="username" class="form-label">Usuario</label>
+                    <div class="input-icon-wrapper">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            class="form-input" 
+                            placeholder="Nombre de usuario"
+                            autocomplete="username"
+                            required
+                        >
+                    </div>
+                    <span class="form-error">Por favor ingrese su usuario</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-icon-wrapper" style="position: relative;">
+                        <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                        </svg>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            class="form-input" 
+                            placeholder="••••••••"
+                            autocomplete="current-password"
+                            required
+                        >
+                        <button type="button" id="togglePassword" class="password-toggle">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <span class="form-error">Por favor ingrese su contraseña</span>
+                </div>
+
+                <div class="login-actions">
+                    <button type="submit" id="btnLogin" class="btn btn-primary btn-block btn-lg">
+                        <span class="btn-text">Ingresar</span>
+                        <span class="btn-loading" style="display: none;">
+                            <span class="spinner"></span>
+                            Verificando...
+                        </span>
+                    </button>
+                </div>
+            </form>
+
+            <div class="login-footer">
+                <a href="index.html">← Volver al formulario</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================
+         SECCIÓN DE DASHBOARD
+         ========================================= -->
+    <div id="dashboardSection" class="dashboard-wrapper hidden">
+        <!-- Overlay para sidebar móvil -->
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+        <!-- Sidebar -->
+        <aside id="sidebar" class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <div class="sidebar-logo-icon">🚌</div>
+                    <span class="sidebar-logo-text">TransControl</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <span class="sidebar-nav-title">Menú Principal</span>
+                <a href="#" class="sidebar-nav-item active" data-section="dashboard">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="3" width="7" height="9"/>
+                        <rect x="14" y="3" width="7" height="5"/>
+                        <rect x="14" y="12" width="7" height="9"/>
+                        <rect x="3" y="16" width="7" height="5"/>
+                    </svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="sidebar-nav-item" data-section="registros">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <span>Registros</span>
+                </a>
+                <a href="#" class="sidebar-nav-item" data-section="configuracion">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"/>
+                    </svg>
+                    <span>Configuración</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">AD</div>
+                    <div class="user-details">
+                        <div class="user-name" id="userName">Admin</div>
+                        <div class="user-role" id="userRole">Administrador</div>
+                    </div>
+                    <button id="btnLogout" class="logout-btn" title="Cerrar sesión">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <polyline points="16 17 21 12 16 7"/>
+                            <line x1="21" y1="12" x2="9" y2="12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Contenido Principal -->
+        <main class="dashboard-main">
+            <!-- Top Bar -->
+            <header class="topbar">
+                <div class="topbar-left">
+                    <button id="menuToggle" class="menu-toggle">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"/>
+                            <line x1="3" y1="6" x2="21" y2="6"/>
+                            <line x1="3" y1="18" x2="21" y2="18"/>
+                        </svg>
+                    </button>
+                    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+                </div>
+                <div class="topbar-right">
+                    <button class="topbar-btn" title="Actualizar datos" id="btnRefresh">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                            <path d="M21 3v5h-5"/>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                            <path d="M8 16H3v5"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Contenido del Dashboard -->
+            <div class="dashboard-content">
+                <!-- Estadísticas -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                            </div>
+                            <div class="stat-trend up" id="trendRegistros">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                                </svg>
+                                +12%
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalRegistros">0</div>
+                        <div class="stat-label">Total Registros</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon success">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalConductores">0</div>
+                        <div class="stat-label">Conductores Activos</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon warning">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <line x1="12" y1="8" x2="12" y2="12"/>
+                                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalNovedades">0</div>
+                        <div class="stat-label">Novedades Reportadas</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-header">
+                            <div class="stat-icon info">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="1" y="3" width="15" height="13"/>
+                                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                                    <circle cx="5.5" cy="18.5" r="2.5"/>
+                                    <circle cx="18.5" cy="18.5" r="2.5"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="stat-value" id="totalVehiculos">0</div>
+                        <div class="stat-label">Vehículos Registrados</div>
+                    </div>
+                </div>
+
+                <!-- Tabla de Datos -->
+                <div class="data-section">
+                    <div class="data-header">
+                        <h2 class="data-title">📋 Registros de Conductores</h2>
+                        <div class="data-actions">
+                            <button id="btnToggleFilters" class="btn btn-secondary btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                                </svg>
+                                Filtros
+                            </button>
+                            <button id="btnExport" class="btn btn-primary btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="7 10 12 15 17 10"/>
+                                    <line x1="12" y1="15" x2="12" y2="3"/>
+                                </svg>
+                                Exportar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Filtros -->
+                    <div id="filtersPanel" class="filters-panel">
+                        <div class="filters-grid">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filterFechaInicio" class="form-label">Fecha Inicio</label>
+                                <input type="date" id="filterFechaInicio" class="form-input">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filterFechaFin" class="form-label">Fecha Fin</label>
+                                <input type="date" id="filterFechaFin" class="form-input">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filterEmpresa" class="form-label">Empresa</label>
+                                <select id="filterEmpresa" class="form-select">
+                                    <option value="">Todas</option>
+                                    <option value="Urbanos Cañarte">Urbanos Cañarte</option>
+                                    <option value="Transperla del Otún">Transperla del Otún</option>
+                                    <option value="Servilujo">Servilujo</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filterConductor" class="form-label">Conductor</label>
+                                <input type="text" id="filterConductor" class="form-input" placeholder="Buscar conductor...">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filterVehiculo" class="form-label">Vehículo</label>
+                                <input type="text" id="filterVehiculo" class="form-input" placeholder="Buscar vehículo...">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="filterNovedad" class="form-label">Con Novedad</label>
+                                <select id="filterNovedad" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option value="si">Con novedad</option>
+                                    <option value="no">Sin novedad</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="filters-actions">
+                            <button id="btnClearFilters" class="btn btn-secondary btn-sm">Limpiar</button>
+                            <button id="btnApplyFilters" class="btn btn-primary btn-sm">Aplicar Filtros</button>
+                        </div>
+                    </div>
+
+                    <!-- Tabla -->
+                    <div class="table-wrapper">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort="fecha">Fecha</th>
+                                    <th class="sortable" data-sort="empresa">Empresa</th>
+                                    <th>Prefijo</th>
+                                    <th class="sortable" data-sort="vehiculo">Vehículo</th>
+                                    <th class="sortable" data-sort="conductor">Conductor</th>
+                                    <th>Horario</th>
+                                    <th>Servicio</th>
+                                    <th>Novedad</th>
+                                    <th style="width: 80px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                                <!-- Los datos se cargarán dinámicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Estado vacío -->
+                    <div id="tableEmpty" class="table-empty hidden">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                            <polyline points="13 2 13 9 20 9"/>
+                        </svg>
+                        <p>No se encontraron registros</p>
+                    </div>
+
+                    <!-- Paginación -->
+                    <div class="table-pagination">
+                        <div class="pagination-info">
+                            Mostrando <span id="showingStart">0</span>-<span id="showingEnd">0</span> de <span id="totalRecords">0</span> registros
+                        </div>
+                        <div class="pagination-controls" id="paginationControls">
+                            <!-- Se genera dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección de Configuración -->
+                <div id="configSection" class="config-section hidden">
+                    <h2 class="data-title">⚙️ Configuración de Empresas</h2>
+                    
+                    <div class="config-form">
+                        <form id="empresaForm" class="form-grid-2">
+                            <div class="form-group">
+                                <label for="empresaNombre" class="form-label">Nombre Empresa</label>
+                                <input type="text" id="empresaNombre" class="form-input" placeholder="Ej: Transperla" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="empresaPrefijo" class="form-label">Prefijo</label>
+                                <input type="text" id="empresaPrefijo" class="form-input" placeholder="Ej: TP" required style="text-transform: uppercase;">
+                            </div>
+                            <div class="form-actions" style="grid-column: 1 / -1;">
+                                <button type="reset" class="btn btn-secondary">Limpiar</button>
+                                <button type="submit" class="btn btn-primary">Agregar Empresa</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="config-table">
+                        <h3>Empresas Registradas</h3>
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre</th>
+                                        <th>Prefijo</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="empresasTableBody">
+                                    <!-- Se carga dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="empresasEmpty" class="table-empty hidden">
+                            <p>No hay empresas registradas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Edición de Empresa -->
+    <div id="editEmpresaModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar Empresa</h3>
+                <button class="modal-close" id="closeEditEmpresaModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editEmpresaForm" class="form-grid-2">
+                    <input type="hidden" id="editEmpresaId">
+                    <div class="form-group">
+                        <label for="editEmpresaNombre" class="form-label">Nombre Empresa</label>
+                        <input type="text" id="editEmpresaNombre" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmpresaPrefijo" class="form-label">Prefijo</label>
+                        <input type="text" id="editEmpresaPrefijo" class="form-input" required style="text-transform: uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmpresaActiva" class="form-label">
+                            <input type="checkbox" id="editEmpresaActiva" checked>
+                            Activa
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelEditEmpresa">Cancelar</button>
+                <button class="btn btn-primary" id="confirmEditEmpresa">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición/Eliminación de Registros -->
+    <div id="editRegistroModal" class="modal-overlay">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h3 class="modal-title">Editar Registro</h3>
+                <button class="modal-close" id="closeEditRegistroModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="editRegistroForm" class="form-grid">
+                    <input type="hidden" id="editRegistroId">
+                    <div class="form-group">
+                        <label for="editRegistroFecha" class="form-label">Fecha</label>
+                        <input type="date" id="editRegistroFecha" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroEmpresa" class="form-label">Empresa</label>
+                        <select id="editRegistroEmpresa" class="form-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroPrefijo" class="form-label">Prefijo</label>
+                        <input type="text" id="editRegistroPrefijo" class="form-input" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroVehiculo" class="form-label">Vehículo</label>
+                        <input type="text" id="editRegistroVehiculo" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroTabla" class="form-label">Tabla</label>
+                        <input type="text" id="editRegistroTabla" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroConductor" class="form-label">Conductor</label>
+                        <input type="text" id="editRegistroConductor" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroHoraInicio" class="form-label">Hora Inicio</label>
+                        <input type="time" id="editRegistroHoraInicio" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editRegistroHoraFin" class="form-label">Hora Fin</label>
+                        <input type="time" id="editRegistroHoraFin" class="form-input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="editRegistroServicio" class="form-label">Servicio</label>
+                        <input type="text" id="editRegistroServicio" class="form-input" required>
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="editRegistroNovedad" class="form-label">Novedad</label>
+                        <textarea id="editRegistroNovedad" class="form-textarea" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="deleteRegistroBtn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    Eliminar
+                </button>
+                <button class="btn btn-secondary" id="cancelEditRegistro">Cancelar</button>
+                <button class="btn btn-primary" id="confirmEditRegistro">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Exportación -->
+    <div id="exportModal" class="modal-overlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Exportar Datos</h3>
+                <button class="modal-close" id="closeExportModal">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary mb-lg">Seleccione el formato de exportación:</p>
+                <div class="export-options">
+                    <div class="export-option selected" data-format="xlsx">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                        </svg>
+                        <span>Excel (.xlsx)</span>
+                    </div>
+                    <div class="export-option" data-format="csv">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        <span>CSV (.csv)</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelExport">Cancelar</button>
+                <button class="btn btn-primary" id="confirmExport">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Descargar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenedor de Notificaciones -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <!-- Librería XLSX para exportación avanzada a Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.min.js"></script>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>
