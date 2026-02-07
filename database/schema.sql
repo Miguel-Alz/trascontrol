@@ -1,25 +1,24 @@
--- Crear base de datos (ejecutar como superusuario)
--- CREATE DATABASE conductores_db;
+-- =====================================================
+-- TRANSMILENIO CONTROL - Schema de Base de Datos
+-- Sistema de Control de Rutas de Transporte
+-- =====================================================
 
--- Conectar a la base de datos
+-- CREATE DATABASE conductores_db;
 -- \c conductores_db;
 
--- =====================================================
--- EXTENSIÓN PARA UUID (opcional pero recomendado)
--- =====================================================
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
 -- TABLA: usuarios
--- Almacena credenciales de usuarios administrativos
 -- =====================================================
 CREATE TABLE IF NOT EXISTS usuarios (
     id SERIAL PRIMARY KEY,
     uuid UUID DEFAULT uuid_generate_v4() UNIQUE,
     username VARCHAR(50) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL, -- Almacenar hash, NUNCA texto plano
+    password VARCHAR(255) NOT NULL,
+    nombre VARCHAR(100),
     email VARCHAR(100),
-    rol VARCHAR(20) DEFAULT 'admin' CHECK (rol IN ('admin', 'supervisor', 'viewer')),
+    rol VARCHAR(20) DEFAULT 'viewer' CHECK (rol IN ('admin', 'supervisor', 'viewer')),
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     ultimo_acceso TIMESTAMP WITH TIME ZONE
@@ -27,19 +26,56 @@ CREATE TABLE IF NOT EXISTS usuarios (
 
 -- =====================================================
 -- TABLA: empresas
--- Catálogo de empresas disponibles
 -- =====================================================
 CREATE TABLE IF NOT EXISTS empresas (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE,
     prefijo VARCHAR(10) NOT NULL UNIQUE,
-    activa BOOLEAN DEFAULT TRUE,
+    nit VARCHAR(20),
+    direccion VARCHAR(200),
+    telefono VARCHAR(20),
+    activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- =====================================================
+-- TABLA: rutas
+-- Catálogo de rutas de transporte
+-- =====================================================
+CREATE TABLE IF NOT EXISTS rutas (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(20) NOT NULL UNIQUE,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion TEXT,
+    origen VARCHAR(100),
+    destino VARCHAR(100),
+    empresa_id INTEGER REFERENCES empresas(id),
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_rutas_codigo ON rutas(codigo);
+CREATE INDEX IF NOT EXISTS idx_rutas_empresa ON rutas(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_rutas_activo ON rutas(activo);
+
+-- =====================================================
+-- TABLA: tipo_novedades
+-- Catálogo de tipos de novedades
+-- =====================================================
+CREATE TABLE IF NOT EXISTS tipo_novedades (
+    id SERIAL PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE,
+    descripcion TEXT,
+    severidad VARCHAR(20) DEFAULT 'media' CHECK (severidad IN ('baja', 'media', 'alta', 'critica')),
+    color VARCHAR(7) DEFAULT '#f59e0b',
+    activo BOOLEAN DEFAULT TRUE,
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_tipo_novedades_activo ON tipo_novedades(activo);
+
+-- =====================================================
 -- TABLA: conductores
--- Catálogo de conductores registrados
 -- =====================================================
 CREATE TABLE IF NOT EXISTS conductores (
     id SERIAL PRIMARY KEY,
@@ -48,50 +84,47 @@ CREATE TABLE IF NOT EXISTS conductores (
     cedula VARCHAR(20) UNIQUE,
     telefono VARCHAR(20),
     email VARCHAR(100),
-    empresa VARCHAR(100) REFERENCES empresas(nombre),
+    licencia VARCHAR(30),
+    empresa_id INTEGER REFERENCES empresas(id),
     activo BOOLEAN DEFAULT TRUE,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Índices para conductores
 CREATE INDEX IF NOT EXISTS idx_conductores_nombre ON conductores(nombre);
-CREATE INDEX IF NOT EXISTS idx_conductores_empresa ON conductores(empresa);
+CREATE INDEX IF NOT EXISTS idx_conductores_cedula ON conductores(cedula);
+CREATE INDEX IF NOT EXISTS idx_conductores_empresa ON conductores(empresa_id);
 CREATE INDEX IF NOT EXISTS idx_conductores_activo ON conductores(activo);
 
 -- =====================================================
--- TABLA: formulario
--- Registro principal de información de conductores
+-- TABLA: registros (antes formulario)
+-- Registro principal de control de rutas
 -- =====================================================
-CREATE TABLE IF NOT EXISTS formulario (
+CREATE TABLE IF NOT EXISTS registros (
     id SERIAL PRIMARY KEY,
     uuid UUID DEFAULT uuid_generate_v4() UNIQUE,
     fecha DATE NOT NULL,
-    empresa VARCHAR(100) NOT NULL,
-    prefijo VARCHAR(10) NOT NULL,
+    empresa_id INTEGER NOT NULL REFERENCES empresas(id),
+    ruta_id INTEGER REFERENCES rutas(id),
+    conductor_id INTEGER REFERENCES conductores(id),
     vehiculo VARCHAR(50) NOT NULL,
-    tabla VARCHAR(50) NOT NULL,
-    conductor VARCHAR(100) NOT NULL,
+    placa VARCHAR(10),
     hora_inicio TIME NOT NULL,
     hora_fin TIME NOT NULL,
-    servicio VARCHAR(200) NOT NULL,
-    novedad TEXT,
+    tipo_novedad_id INTEGER REFERENCES tipo_novedades(id),
+    novedad_descripcion TEXT,
+    observaciones TEXT,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     fecha_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    creado_por INTEGER REFERENCES usuarios(id),
-    
-    -- Índices para búsquedas frecuentes
-    CONSTRAINT chk_horas CHECK (hora_fin >= hora_inicio)
+    creado_por INTEGER REFERENCES usuarios(id)
 );
 
--- =====================================================
--- ÍNDICES para optimizar consultas
--- =====================================================
-CREATE INDEX IF NOT EXISTS idx_formulario_fecha ON formulario(fecha);
-CREATE INDEX IF NOT EXISTS idx_formulario_empresa ON formulario(empresa);
-CREATE INDEX IF NOT EXISTS idx_formulario_conductor ON formulario(conductor);
-CREATE INDEX IF NOT EXISTS idx_formulario_vehiculo ON formulario(vehiculo);
-CREATE INDEX IF NOT EXISTS idx_formulario_fecha_empresa ON formulario(fecha, empresa);
+CREATE INDEX IF NOT EXISTS idx_registros_fecha ON registros(fecha);
+CREATE INDEX IF NOT EXISTS idx_registros_empresa ON registros(empresa_id);
+CREATE INDEX IF NOT EXISTS idx_registros_conductor ON registros(conductor_id);
+CREATE INDEX IF NOT EXISTS idx_registros_ruta ON registros(ruta_id);
+CREATE INDEX IF NOT EXISTS idx_registros_novedad ON registros(tipo_novedad_id);
+CREATE INDEX IF NOT EXISTS idx_registros_fecha_empresa ON registros(fecha, empresa_id);
 
 -- =====================================================
 -- DATOS INICIALES: Empresas
@@ -114,11 +147,11 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =====================================================
--- TRIGGER: Auto-actualizar fecha en formulario
+-- TRIGGER: Auto-actualizar fecha en registros
 -- =====================================================
-DROP TRIGGER IF EXISTS trigger_actualizar_fecha ON formulario;
+DROP TRIGGER IF EXISTS trigger_actualizar_fecha ON registros;
 CREATE TRIGGER trigger_actualizar_fecha
-    BEFORE UPDATE ON formulario
+    BEFORE UPDATE ON registros
     FOR EACH ROW
     EXECUTE FUNCTION actualizar_fecha_modificacion();
 
@@ -129,29 +162,34 @@ CREATE TRIGGER trigger_actualizar_fecha
 -- Vista: Resumen por empresa
 CREATE OR REPLACE VIEW vista_resumen_empresa AS
 SELECT 
-    empresa,
-    prefijo,
+    e.nombre as empresa,
+    e.prefijo,
     COUNT(*) as total_registros,
-    COUNT(DISTINCT conductor) as total_conductores,
-    COUNT(DISTINCT vehiculo) as total_vehiculos,
-    MIN(fecha) as primera_fecha,
-    MAX(fecha) as ultima_fecha
-FROM formulario
-GROUP BY empresa, prefijo
+    COUNT(DISTINCT r.conductor_id) as total_conductores,
+    COUNT(DISTINCT r.vehiculo) as total_vehiculos,
+    MIN(r.fecha) as primera_fecha,
+    MAX(r.fecha) as ultima_fecha
+FROM registros r
+JOIN empresas e ON r.empresa_id = e.id
+GROUP BY e.id, e.nombre, e.prefijo
 ORDER BY total_registros DESC;
 
 -- Vista: Registros con novedades
 CREATE OR REPLACE VIEW vista_novedades AS
 SELECT 
-    id,
-    fecha,
-    empresa,
-    conductor,
-    vehiculo,
-    novedad,
-    fecha_creacion
-FROM formulario
-WHERE novedad IS NOT NULL AND TRIM(novedad) != ''
-ORDER BY fecha_creacion DESC;
+    r.id,
+    r.fecha,
+    e.nombre as empresa,
+    c.nombre as conductor,
+    r.vehiculo,
+    tn.nombre as novedad,
+    r.novedad_descripcion,
+    r.fecha_creacion
+FROM registros r
+JOIN empresas e ON r.empresa_id = e.id
+LEFT JOIN conductores c ON r.conductor_id = c.id
+LEFT JOIN tipo_novedades tn ON r.tipo_novedad_id = tn.id
+WHERE r.novedad_descripcion IS NOT NULL AND TRIM(r.novedad_descripcion) != ''
+ORDER BY r.fecha_creacion DESC;
 
 
