@@ -1,59 +1,77 @@
 -- =====================================================
--- SEEDS - Datos de prueba para desarrollo
--- Sistema de Registro de Conductores
+-- SEED DATA
 -- =====================================================
 
--- Limpiar datos existentes (CUIDADO: solo usar en desarrollo)
--- TRUNCATE TABLE formulario, conductores, empresas, usuarios RESTART IDENTITY CASCADE;
+-- Limpiar tablas)
+TRUNCATE registros RESTART IDENTITY CASCADE;
+TRUNCATE conductores RESTART IDENTITY CASCADE;
+TRUNCATE tipo_novedades RESTART IDENTITY CASCADE;
+TRUNCATE rutas RESTART IDENTITY CASCADE;
+TRUNCATE empresas RESTART IDENTITY CASCADE;
+TRUNCATE usuarios RESTART IDENTITY CASCADE;
 
 -- =====================================================
--- Insertar usuario administrador de prueba
--- Contraseña: admin123 (hash bcrypt)
+-- USUARIOS
 -- =====================================================
-INSERT INTO usuarios (username, password, email, rol) 
-VALUES (
-  'admin', 
-  '$2a$10$rOzJqQZQGqQ8qOLPgVMOWOQn3qZQlQsQQlQsQQlQsQQlQsQQlQsQQ', -- admin123
-  'admin@transcontrol.com',
-  'admin'
-) ON CONFLICT (username) DO NOTHING;
+INSERT INTO usuarios (username, password, nombre, email, activo)
+VALUES
+('admin', '$2b$10$abcdefghijklmnopqrstuv', 'Administrador', 'admin@test.com', true),
+('operador', '$2b$10$abcdefghijklmnopqrstuv', 'Operador', 'operador@test.com', true);
 
 -- =====================================================
--- Insertar empresas
+-- EMPRESAS
 -- =====================================================
-INSERT INTO empresas (nombre, prefijo, activa) VALUES
-  ('Urbanos Cañarte', 'UC', true),
-  ('Transperla del Otún', 'TP', true),
-  ('Servilujo', 'SL', true)
-ON CONFLICT (nombre) DO NOTHING;
+INSERT INTO empresas (nombre, prefijo)
+VALUES
+('Urbanos Cañarte', 'UC'),
+('Transperla del Otún', 'TP');
 
 -- =====================================================
--- Insertar conductores de prueba
+-- RUTAS
 -- =====================================================
-INSERT INTO conductores (nombre, cedula, telefono, empresa, activo) VALUES
-  ('Juan Carlos Pérez', '1234567890', '3001234567', 'Urbanos Cañarte', true),
-  ('María Elena Gómez', '0987654321', '3009876543', 'Urbanos Cañarte', true),
-  ('Pedro Antonio López', '1122334455', '3112233445', 'Transperla del Otún', true),
-  ('Ana María Rodríguez', '5544332211', '3155443322', 'Transperla del Otún', true),
-  ('Carlos Andrés Martínez', '6677889900', '3166778899', 'Servilujo', true),
-  ('Laura Patricia Sánchez', '9988776655', '3199887766', 'Servilujo', true)
-ON CONFLICT (cedula) DO NOTHING;
+INSERT INTO rutas (nombre, descripcion, origen, destino)
+VALUES
+('Ruta Centro', 'Recorrido por el centro', 'Terminal', 'Centro'),
+('Ruta Norte', 'Servicio hacia el norte', 'Terminal', 'Norte'),
+('Ruta Sur', 'Servicio hacia el sur', 'Terminal', 'Sur');
 
 -- =====================================================
--- Insertar registros de ejemplo
+-- TIPOS DE NOVEDADES
 -- =====================================================
-INSERT INTO formulario (fecha, empresa, prefijo, vehiculo, tabla, conductor, hora_inicio, hora_fin, servicio, novedad) VALUES
-  (CURRENT_DATE, 'Urbanos Cañarte', 'UC', 'UC-001', 'T-101', 'Juan Carlos Pérez', '06:00', '14:00', 'Ruta Centro - Kennedy', NULL),
-  (CURRENT_DATE, 'Urbanos Cañarte', 'UC', 'UC-002', 'T-102', 'María Elena Gómez', '07:00', '15:00', 'Ruta Dosquebradas - Centro', 'Tráfico pesado en la carrera 8'),
-  (CURRENT_DATE, 'Transperla del Otún', 'TP', 'TP-010', 'T-201', 'Pedro Antonio López', '05:30', '13:30', 'Ruta Cuba - Centro', NULL),
-  (CURRENT_DATE - 1, 'Servilujo', 'SL', 'SL-005', 'T-301', 'Carlos Andrés Martínez', '08:00', '16:00', 'Servicio especial empresarial', NULL),
-  (CURRENT_DATE - 1, 'Urbanos Cañarte', 'UC', 'UC-003', 'T-103', 'Juan Carlos Pérez', '14:00', '22:00', 'Ruta Centro - Cuba', 'Vehículo presentó falla menor');
+INSERT INTO tipo_novedades (nombre, descripcion, severidad, color)
+VALUES
+('Sin novedad', 'Operación normal', 'baja', '#10b981'),
+('Retraso', 'Retraso en el itinerario', 'media', '#f59e0b'),
+('Falla mecánica', 'Vehículo requiere revisión', 'alta', '#ef4444'),
+('Accidente', 'Evento crítico en vía', 'critica', '#7c2d12');
 
 -- =====================================================
--- Mensaje de confirmación
+-- CONDUCTORES
 -- =====================================================
-DO $$
-BEGIN
-  RAISE NOTICE 'Seeds insertados correctamente';
-  RAISE NOTICE 'Usuario admin creado: admin / admin123';
-END $$;
+INSERT INTO conductores (nombre, cedula, telefono)
+VALUES
+('Carlos Pérez', '10000001', '3001111111'),
+('Luis Gómez', '10000002', '3002222222'),
+('Andrés Martínez', '10000003', '3003333333');
+
+-- =====================================================
+-- REGISTROS
+-- =====================================================
+INSERT INTO registros (
+    fecha,
+    empresa_id,
+    ruta_id,
+    conductor_id,
+    vehiculo,
+    tabla,
+    hora_inicio,
+    hora_fin,
+    servicio,
+    tipo_novedad_id,
+    observaciones,
+    creado_por
+)
+VALUES
+('2026-02-01', 1, 1, 1, 'BUS-001', 'T01', '06:00', '14:00', 'Servicio urbano', 1, 'Todo en orden', 1),
+('2026-02-01', 1, 2, 2, 'BUS-002', 'T02', '07:00', '15:00', 'Servicio urbano', 2, 'Tráfico pesado', 1),
+('2026-02-01', 2, 3, 3, 'BUS-010', 'T10', '08:00', '16:00', 'Servicio intermunicipal', 3, 'Se cambia vehículo', 2);
