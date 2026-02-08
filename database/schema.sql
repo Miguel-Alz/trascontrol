@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS empresas (
 CREATE TABLE IF NOT EXISTS rutas (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
+    numero VARCHAR(20),
     descripcion TEXT,
     origen VARCHAR(100),
     destino VARCHAR(100),
@@ -93,8 +94,7 @@ CREATE TABLE IF NOT EXISTS registros (
     tipo_novedad_id INTEGER REFERENCES tipo_novedades(id),
     observaciones TEXT,
     fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    creado_por INTEGER REFERENCES usuarios(id)
+    fecha_actualizacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_registros_fecha ON registros(fecha);

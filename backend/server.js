@@ -110,8 +110,37 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
 // GET todas las empresas
 app.get('/api/empresas', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM empresas WHERE activo = true ORDER BY nombre');
-        res.json({ success: true, data: result.rows });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        
+        let query = 'SELECT * FROM empresas';
+        let countQuery = 'SELECT COUNT(*) FROM empresas';
+        const params = [];
+        
+        if (search) {
+            query += ' WHERE nombre ILIKE $1';
+            countQuery += ' WHERE nombre ILIKE $1';
+            params.push(`%${search}%`);
+        }
+        
+        query += ' ORDER BY nombre LIMIT $'+(params.length+1)+' OFFSET $'+(params.length+2);
+        params.push(limit, offset);
+        
+        const [result, countResult] = await Promise.all([
+            pool.query(query, params),
+            pool.query(countQuery, search ? [`%${search}%`] : [])
+        ]);
+        
+        const total = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+        
+        res.json({ 
+            success: true, 
+            data: result.rows,
+            pagination: { page, limit, total, totalPages }
+        });
     } catch (error) {
         console.error('Error al obtener empresas:', error);
         res.status(500).json({ success: false, error: 'Error del servidor' });
@@ -122,7 +151,7 @@ app.get('/api/empresas', authenticateToken, async (req, res) => {
 app.get('/api/empresas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT * FROM empresas WHERE id = $1 AND activo = true', [id]);
+        const result = await pool.query('SELECT * FROM empresas WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Empresa no encontrada' });
         }
@@ -175,7 +204,7 @@ app.delete('/api/empresas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
-            'UPDATE empresas SET activo = false WHERE id = $1 RETURNING *',
+            'DELETE FROM empresas WHERE id = $1 RETURNING *',
             [id]
         );
         if (result.rows.length === 0) {
@@ -195,8 +224,37 @@ app.delete('/api/empresas/:id', authenticateToken, async (req, res) => {
 // GET todas las rutas
 app.get('/api/rutas', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM rutas WHERE activo = true ORDER BY nombre');
-        res.json({ success: true, data: result.rows });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        
+        let query = 'SELECT * FROM rutas';
+        let countQuery = 'SELECT COUNT(*) FROM rutas';
+        const params = [];
+        
+        if (search) {
+            query += ' WHERE nombre ILIKE $1 OR origen ILIKE $1 OR destino ILIKE $1';
+            countQuery += ' WHERE nombre ILIKE $1 OR origen ILIKE $1 OR destino ILIKE $1';
+            params.push(`%${search}%`);
+        }
+        
+        query += ' ORDER BY nombre LIMIT $'+(params.length+1)+' OFFSET $'+(params.length+2);
+        params.push(limit, offset);
+        
+        const [result, countResult] = await Promise.all([
+            pool.query(query, params),
+            pool.query(countQuery, search ? [`%${search}%`] : [])
+        ]);
+        
+        const total = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+        
+        res.json({ 
+            success: true, 
+            data: result.rows,
+            pagination: { page, limit, total, totalPages }
+        });
     } catch (error) {
         console.error('Error al obtener rutas:', error);
         res.status(500).json({ success: false, error: 'Error del servidor' });
@@ -207,7 +265,7 @@ app.get('/api/rutas', authenticateToken, async (req, res) => {
 app.get('/api/rutas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT * FROM rutas WHERE id = $1 AND activo = true', [id]);
+        const result = await pool.query('SELECT * FROM rutas WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
         }
@@ -221,13 +279,13 @@ app.get('/api/rutas/:id', authenticateToken, async (req, res) => {
 // POST crear nueva ruta
 app.post('/api/rutas', authenticateToken, async (req, res) => {
     try {
-        const { nombre, descripcion, origen, destino } = req.body;
+        const { nombre, numero, descripcion, origen, destino } = req.body;
         if (!nombre) {
             return res.status(400).json({ success: false, error: 'Nombre requerido' });
         }
         const result = await pool.query(
-            'INSERT INTO rutas (nombre, descripcion, origen, destino) VALUES ($1, $2, $3, $4) RETURNING *',
-            [nombre, descripcion || null, origen || null, destino || null]
+            'INSERT INTO rutas (nombre, numero, descripcion, origen, destino) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [nombre, numero || null, descripcion || null, origen || null, destino || null]
         );
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
@@ -240,10 +298,10 @@ app.post('/api/rutas', authenticateToken, async (req, res) => {
 app.put('/api/rutas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const { nombre, descripcion, origen, destino, activo } = req.body;
+        const { nombre, numero, descripcion, origen, destino, activo } = req.body;
         const result = await pool.query(
-            'UPDATE rutas SET nombre = COALESCE($1, nombre), descripcion = COALESCE($2, descripcion), origen = COALESCE($3, origen), destino = COALESCE($4, destino), activo = COALESCE($5, activo) WHERE id = $6 RETURNING *',
-            [nombre, descripcion, origen, destino, activo, id]
+            'UPDATE rutas SET nombre = COALESCE($1, nombre), numero = COALESCE($2, numero), descripcion = COALESCE($3, descripcion), origen = COALESCE($4, origen), destino = COALESCE($5, destino), activo = COALESCE($6, activo) WHERE id = $7 RETURNING *',
+            [nombre, numero, descripcion, origen, destino, activo, id]
         );
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Ruta no encontrada' });
@@ -260,7 +318,7 @@ app.delete('/api/rutas/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
-            'UPDATE rutas SET activo = false WHERE id = $1 RETURNING *',
+            'DELETE FROM rutas WHERE id = $1 RETURNING *',
             [id]
         );
         if (result.rows.length === 0) {
@@ -280,8 +338,37 @@ app.delete('/api/rutas/:id', authenticateToken, async (req, res) => {
 // GET todas las tipos de novedades
 app.get('/api/tipo-novedades', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM tipo_novedades WHERE activo = true ORDER BY nombre');
-        res.json({ success: true, data: result.rows });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        
+        let query = 'SELECT * FROM tipo_novedades';
+        let countQuery = 'SELECT COUNT(*) FROM tipo_novedades';
+        const params = [];
+        
+        if (search) {
+            query += ' WHERE nombre ILIKE $1';
+            countQuery += ' WHERE nombre ILIKE $1';
+            params.push(`%${search}%`);
+        }
+        
+        query += ' ORDER BY nombre LIMIT $'+(params.length+1)+' OFFSET $'+(params.length+2);
+        params.push(limit, offset);
+        
+        const [result, countResult] = await Promise.all([
+            pool.query(query, params),
+            pool.query(countQuery, search ? [`%${search}%`] : [])
+        ]);
+        
+        const total = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+        
+        res.json({ 
+            success: true, 
+            data: result.rows,
+            pagination: { page, limit, total, totalPages }
+        });
     } catch (error) {
         console.error('Error al obtener tipos de novedades:', error);
         res.status(500).json({ success: false, error: 'Error del servidor' });
@@ -292,7 +379,7 @@ app.get('/api/tipo-novedades', authenticateToken, async (req, res) => {
 app.get('/api/tipo-novedades/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT * FROM tipo_novedades WHERE id = $1 AND activo = true', [id]);
+        const result = await pool.query('SELECT * FROM tipo_novedades WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Tipo de novedad no encontrado' });
         }
@@ -345,7 +432,7 @@ app.delete('/api/tipo-novedades/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
-            'UPDATE tipo_novedades SET activo = false WHERE id = $1 RETURNING *',
+            'DELETE FROM tipo_novedades WHERE id = $1 RETURNING *',
             [id]
         );
         if (result.rows.length === 0) {
@@ -365,8 +452,37 @@ app.delete('/api/tipo-novedades/:id', authenticateToken, async (req, res) => {
 // GET todos los conductores
 app.get('/api/conductores', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM conductores WHERE activo = true ORDER BY nombre');
-        res.json({ success: true, data: result.rows });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const search = req.query.search || '';
+        
+        let query = 'SELECT * FROM conductores';
+        let countQuery = 'SELECT COUNT(*) FROM conductores';
+        const params = [];
+        
+        if (search) {
+            query += ' WHERE nombre ILIKE $1 OR cedula ILIKE $1';
+            countQuery += ' WHERE nombre ILIKE $1 OR cedula ILIKE $1';
+            params.push(`%${search}%`);
+        }
+        
+        query += ' ORDER BY nombre LIMIT $'+(params.length+1)+' OFFSET $'+(params.length+2);
+        params.push(limit, offset);
+        
+        const [result, countResult] = await Promise.all([
+            pool.query(query, params),
+            pool.query(countQuery, search ? [`%${search}%`] : [])
+        ]);
+        
+        const total = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+        
+        res.json({ 
+            success: true, 
+            data: result.rows,
+            pagination: { page, limit, total, totalPages }
+        });
     } catch (error) {
         console.error('Error al obtener conductores:', error);
         res.status(500).json({ success: false, error: 'Error del servidor' });
@@ -377,7 +493,7 @@ app.get('/api/conductores', authenticateToken, async (req, res) => {
 app.get('/api/conductores/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
-        const result = await pool.query('SELECT * FROM conductores WHERE id = $1 AND activo = true', [id]);
+        const result = await pool.query('SELECT * FROM conductores WHERE id = $1', [id]);
         if (result.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Conductor no encontrado' });
         }
@@ -430,7 +546,7 @@ app.delete('/api/conductores/:id', authenticateToken, async (req, res) => {
     try {
         const { id } = req.params;
         const result = await pool.query(
-            'UPDATE conductores SET activo = false, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *',
+            'DELETE FROM conductores WHERE id = $1 RETURNING *',
             [id]
         );
         if (result.rows.length === 0) {
@@ -450,10 +566,81 @@ app.delete('/api/conductores/:id', authenticateToken, async (req, res) => {
 // GET todos los registros
 app.get('/api/registros', authenticateToken, async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT * FROM registros ORDER BY fecha DESC'
-        );
-        res.json({ success: true, data: result.rows });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+        const { fechaInicio, fechaFin, empresa, vehiculo, tabla, horaInicio, horaFin } = req.query;
+        
+        let query = `SELECT r.*, e.nombre as empresa_nombre, rt.nombre as ruta_nombre, c.nombre as conductor_nombre, tn.nombre as novedad_nombre
+            FROM registros r
+            LEFT JOIN empresas e ON r.empresa_id = e.id
+            LEFT JOIN rutas rt ON r.ruta_id = rt.id
+            LEFT JOIN conductores c ON r.conductor_id = c.id
+            LEFT JOIN tipo_novedades tn ON r.tipo_novedad_id = tn.id
+            WHERE 1=1`;
+        let countQuery = 'SELECT COUNT(*) FROM registros WHERE 1=1';
+        const params = [];
+        let paramIndex = 1;
+        
+        if (fechaInicio) {
+            query += ` AND r.fecha >= $${paramIndex}`;
+            countQuery += ` AND fecha >= $${paramIndex}`;
+            params.push(fechaInicio);
+            paramIndex++;
+        }
+        if (fechaFin) {
+            query += ` AND r.fecha <= $${paramIndex}`;
+            countQuery += ` AND fecha <= $${paramIndex}`;
+            params.push(fechaFin);
+            paramIndex++;
+        }
+        if (empresa) {
+            query += ` AND r.empresa_id = $${paramIndex}`;
+            countQuery += ` AND empresa_id = $${paramIndex}`;
+            params.push(parseInt(empresa));
+            paramIndex++;
+        }
+        if (vehiculo) {
+            query += ` AND r.vehiculo ILIKE $${paramIndex}`;
+            countQuery += ` AND vehiculo ILIKE $${paramIndex}`;
+            params.push(`%${vehiculo}%`);
+            paramIndex++;
+        }
+        if (tabla) {
+            query += ` AND r.tabla ILIKE $${paramIndex}`;
+            countQuery += ` AND tabla ILIKE $${paramIndex}`;
+            params.push(`%${tabla}%`);
+            paramIndex++;
+        }
+        if (horaInicio) {
+            query += ` AND r.hora_inicio >= $${paramIndex}`;
+            countQuery += ` AND hora_inicio >= $${paramIndex}`;
+            params.push(horaInicio);
+            paramIndex++;
+        }
+        if (horaFin) {
+            query += ` AND r.hora_fin <= $${paramIndex}`;
+            countQuery += ` AND hora_fin <= $${paramIndex}`;
+            params.push(horaFin);
+            paramIndex++;
+        }
+        
+        query += ` ORDER BY r.fecha DESC LIMIT $${paramIndex} OFFSET $${paramIndex+1}`;
+        params.push(limit, offset);
+        
+        const [result, countResult] = await Promise.all([
+            pool.query(query, params),
+            pool.query(countQuery)
+        ]);
+        
+        const total = parseInt(countResult.rows[0].count);
+        const totalPages = Math.ceil(total / limit);
+        
+        res.json({ 
+            success: true, 
+            data: result.rows,
+            pagination: { page, limit, total, totalPages }
+        });
     } catch (error) {
         console.error('Error al obtener registros:', error);
         res.status(500).json({ success: false, error: 'Error del servidor' });
@@ -530,6 +717,50 @@ app.delete('/api/registros/:id', authenticateToken, async (req, res) => {
         res.json({ success: true, message: 'Registro eliminado' });
     } catch (error) {
         console.error('Error al eliminar registro:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// =====================================================
+// STATS DASHBOARD ENDPOINT
+// =====================================================
+app.get('/api/stats/dashboard', authenticateToken, async (req, res) => {
+    try {
+        const [registrosCount, conductoresCount, empresasCount, novedadesCount, registrosPorEmpresa, registrosPorNovedad] = await Promise.all([
+            pool.query('SELECT COUNT(*) as total FROM registros'),
+            pool.query('SELECT COUNT(*) as total FROM conductores'),
+            pool.query('SELECT COUNT(*) as total FROM empresas'),
+            pool.query('SELECT COUNT(*) as total FROM tipo_novedades'),
+            pool.query(`
+                SELECT e.nombre, COUNT(r.id) as cantidad 
+                FROM registros r 
+                JOIN empresas e ON r.empresa_id = e.id 
+                GROUP BY e.id, e.nombre 
+                ORDER BY cantidad DESC 
+                LIMIT 10
+            `),
+            pool.query(`
+                SELECT tn.nombre, COUNT(r.id) as cantidad, tn.color 
+                FROM registros r 
+                JOIN tipo_novedades tn ON r.tipo_novedad_id = tn.id 
+                GROUP BY tn.id, tn.nombre, tn.color 
+                ORDER BY cantidad DESC
+            `)
+        ]);
+        
+        res.json({
+            success: true,
+            stats: {
+                registros: parseInt(registrosCount.rows[0].total),
+                conductores: parseInt(conductoresCount.rows[0].total),
+                empresas: parseInt(empresasCount.rows[0].total),
+                novedades: parseInt(novedadesCount.rows[0].total)
+            },
+            registrosPorEmpresa: registrosPorEmpresa.rows,
+            registrosPorNovedad: registrosPorNovedad.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener stats:', error);
         res.status(500).json({ success: false, error: 'Error del servidor' });
     }
 });

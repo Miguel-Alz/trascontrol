@@ -15,8 +15,7 @@ TRUNCATE usuarios RESTART IDENTITY CASCADE;
 -- =====================================================
 INSERT INTO usuarios (username, password, nombre, email, activo)
 VALUES
-('admin', '$2b$10$abcdefghijklmnopqrstuv', 'Administrador', 'admin@test.com', true),
-('operador', '$2b$10$abcdefghijklmnopqrstuv', 'Operador', 'operador@test.com', true);
+('admin', '$2b$10$Vwc3wyEo0kvxrXvA1Ft6euZfdGbTrXsybxyspWObu6nptTeTaUwRW', 'Administrador', 'admin@test.com', true)
 
 -- =====================================================
 -- EMPRESAS
@@ -29,11 +28,11 @@ VALUES
 -- =====================================================
 -- RUTAS
 -- =====================================================
-INSERT INTO rutas (nombre, descripcion, origen, destino)
+INSERT INTO rutas (nombre, numero, descripcion, origen, destino)
 VALUES
-('Ruta Centro', 'Recorrido por el centro', 'Terminal', 'Centro'),
-('Ruta Norte', 'Servicio hacia el norte', 'Terminal', 'Norte'),
-('Ruta Sur', 'Servicio hacia el sur', 'Terminal', 'Sur');
+('Ruta Centro', '101', 'Recorrido por el centro', 'Terminal', 'Centro'),
+('Ruta Norte', '102', 'Servicio hacia el norte', 'Terminal', 'Norte'),
+('Ruta Sur', '103', 'Servicio hacia el sur', 'Terminal', 'Sur');
 
 -- =====================================================
 -- TIPOS DE NOVEDADES
