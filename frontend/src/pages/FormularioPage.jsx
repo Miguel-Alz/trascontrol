@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, RotateCcw, User, Loader2 } from 'lucide-react';
-import { empresasAPI, rutasAPI, conductoresAPI, novedadesAPI, registrosAPI } from '../services/api';
+import { publicAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -44,10 +44,10 @@ export default function FormularioPage() {
   const loadData = async () => {
     try {
       const [empRes, rutRes, condRes, novRes] = await Promise.all([
-        empresasAPI.getAll(),
-        rutasAPI.getAll(),
-        conductoresAPI.getAll(),
-        novedadesAPI.getAll(),
+        publicAPI.empresas.getAll(),
+        publicAPI.rutas.getAll(),
+        publicAPI.conductores.getAll(),
+        publicAPI.novedades.getAll(),
       ]);
       setEmpresas(empRes.data || []);
       setRutas(rutRes.data || []);
@@ -69,7 +69,7 @@ export default function FormularioPage() {
 
     setIsSubmitting(true);
     try {
-      await registrosAPI.create({
+      await publicAPI.registros.create({
         ...formData,
         empresa_id: parseInt(formData.empresa_id),
         ruta_id: formData.ruta_id ? parseInt(formData.ruta_id) : null,
@@ -145,7 +145,6 @@ export default function FormularioPage() {
       <header className="glass border-b border-slate-700/50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-xl">🚌</div>
             <div>
               <div className="font-semibold">TransControl</div>
               <div className="text-xs text-slate-400">Sistema de Control de Rutas</div>

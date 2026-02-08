@@ -30,7 +30,6 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import { statsAPI } from '../services/api';
 import StatCard from '../components/ui/StatCard';
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#6366f1'];

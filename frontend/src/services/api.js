@@ -36,6 +36,23 @@ api.interceptors.response.use(
   }
 );
 
+// Crear instancia de axios para endpoints públicos (sin interceptores)
+const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Interceptor simple para respuesta sin redirección
+publicApi.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    const message = error.response?.data?.error || error.message || 'Error de conexión';
+    return Promise.reject(new Error(message));
+  }
+);
+
 export default api;
 
 // =====================================================
@@ -176,4 +193,33 @@ export const registrosAPI = {
 // =====================================================
 export const statsAPI = {
   getDashboard: () => api.get('/stats/dashboard'),
+};
+// =====================================================
+// PUBLIC API (Sin autenticación requerida)
+// =====================================================
+export const publicAPI = {
+  // Empresas públicas
+  empresas: {
+    getAll: () => publicApi.get('/public/empresas'),
+  },
+  
+  // Rutas públicas
+  rutas: {
+    getAll: () => publicApi.get('/public/rutas'),
+  },
+  
+  // Conductores públicos
+  conductores: {
+    getAll: () => publicApi.get('/public/conductores'),
+  },
+  
+  // Tipos de novedades públicos
+  novedades: {
+    getAll: () => publicApi.get('/public/tipo-novedades'),
+  },
+  
+  // Registros públicos (para formulario)
+  registros: {
+    create: (data) => publicApi.post('/public/registros', data),
+  },
 };

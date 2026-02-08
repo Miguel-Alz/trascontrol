@@ -104,6 +104,86 @@ app.get('/api/auth/verify', authenticateToken, (req, res) => {
 });
 
 // =====================================================
+// ENDPOINTS PÚBLICOS (Sin autenticación)
+// =====================================================
+
+// GET todas las empresas (público)
+app.get('/api/public/empresas', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM empresas WHERE activo = true ORDER BY nombre');
+        res.json({ 
+            success: true, 
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener empresas públicas:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// GET todas las rutas (público)
+app.get('/api/public/rutas', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM rutas WHERE activo = true ORDER BY nombre');
+        res.json({ 
+            success: true, 
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener rutas públicas:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// GET todos los conductores (público)
+app.get('/api/public/conductores', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT id, nombre, cedula FROM conductores WHERE activo = true ORDER BY nombre');
+        res.json({ 
+            success: true, 
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener conductores públicos:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// GET todos los tipos de novedades (público)
+app.get('/api/public/tipo-novedades', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM tipo_novedades WHERE activo = true ORDER BY nombre');
+        res.json({ 
+            success: true, 
+            data: result.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener tipos de novedades públicos:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// POST crear registro (público - para formulario público)
+app.post('/api/public/registros', async (req, res) => {
+    try {
+        const { fecha, empresa_id, ruta_id, conductor_id, vehiculo, tabla, hora_inicio, hora_fin, servicio, tipo_novedad_id, observaciones } = req.body;
+        
+        if (!fecha || !empresa_id || !vehiculo || !tabla || !hora_inicio || !hora_fin) {
+            return res.status(400).json({ success: false, error: 'Campos requeridos incompletos' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO registros (fecha, empresa_id, ruta_id, conductor_id, vehiculo, tabla, hora_inicio, hora_fin, servicio, tipo_novedad_id, observaciones, creado_por) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
+            [fecha, empresa_id, ruta_id || null, conductor_id || null, vehiculo, tabla, hora_inicio, hora_fin, servicio || null, tipo_novedad_id || null, observaciones || null, 0]
+        );
+        res.status(201).json({ success: true, data: result.rows[0] });
+    } catch (error) {
+        console.error('Error al crear registro público:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// =====================================================
 // CRUD EMPRESAS
 // =====================================================
 
@@ -626,11 +706,14 @@ app.get('/api/registros', authenticateToken, async (req, res) => {
         }
         
         query += ` ORDER BY r.fecha DESC LIMIT $${paramIndex} OFFSET $${paramIndex+1}`;
+        
+        // Create countParams without LIMIT and OFFSET
+        const countParams = params.slice();
         params.push(limit, offset);
         
         const [result, countResult] = await Promise.all([
             pool.query(query, params),
-            pool.query(countQuery)
+            pool.query(countQuery, countParams)
         ]);
         
         const total = parseInt(countResult.rows[0].count);
