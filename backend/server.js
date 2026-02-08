@@ -765,8 +765,260 @@ app.get('/api/stats/dashboard', authenticateToken, async (req, res) => {
     }
 });
 
+// =====================================================
+// NUEVAS RUTAS PARA DASHBOARD AVANZADO
+// =====================================================
+
+// GET estadísticas generales mejoradas
+app.get('/api/stats/dashboard-advanced', authenticateToken, async (req, res) => {
+    try {
+        const { fechaInicio, fechaFin } = req.query;
+        let dateFilter = '';
+        const params = [];
+        
+        if (fechaInicio && fechaFin) {
+            dateFilter = 'WHERE r.fecha BETWEEN $1 AND $2';
+            params.push(fechaInicio, fechaFin);
+        } else {
+            // Por defecto, últimos 30 días
+            dateFilter = 'WHERE r.fecha >= CURRENT_DATE - INTERVAL \'30 days\'';
+        }
+
+        const [
+            registrosCount,
+            conductoresCount,
+            empresasCount,
+            novedadesCount,
+            registrosPorEmpresa,
+            registrosPorNovedad,
+            registrosPorDia,
+            registrosPorRuta,
+            conductoresActivos,
+            vehiculosMasUsados,
+            horasPico,
+            novedadesPorSeveridad,
+            ultimosRegistros
+        ] = await Promise.all([
+            // Total de registros
+            pool.query(`SELECT COUNT(*) as total FROM registros r ${dateFilter}`, params),
+            
+            // Total de conductores activos
+            pool.query('SELECT COUNT(*) as total FROM conductores WHERE activo = true'),
+            
+            // Total de empresas activas
+            pool.query('SELECT COUNT(*) as total FROM empresas WHERE activo = true'),
+            
+            // Total de tipos de novedades
+            pool.query('SELECT COUNT(*) as total FROM tipo_novedades WHERE activo = true'),
+            
+            // Registros por empresa
+            pool.query(`
+                SELECT e.nombre, e.prefijo, COUNT(r.id) as cantidad, e.id
+                FROM registros r 
+                JOIN empresas e ON r.empresa_id = e.id 
+                ${dateFilter}
+                GROUP BY e.id, e.nombre, e.prefijo
+                ORDER BY cantidad DESC 
+                LIMIT 10
+            `, params),
+            
+            // Registros por tipo de novedad
+            pool.query(`
+                SELECT tn.nombre, COUNT(r.id) as cantidad, tn.color, tn.severidad
+                FROM registros r 
+                JOIN tipo_novedades tn ON r.tipo_novedad_id = tn.id 
+                ${dateFilter}
+                GROUP BY tn.id, tn.nombre, tn.color, tn.severidad
+                ORDER BY cantidad DESC
+            `, params),
+            
+            // Registros por día (últimos 30 días)
+            pool.query(`
+                SELECT 
+                    DATE(r.fecha) as fecha,
+                    COUNT(*) as total,
+                    COUNT(CASE WHEN r.tipo_novedad_id IS NOT NULL THEN 1 END) as con_novedad,
+                    COUNT(CASE WHEN r.tipo_novedad_id IS NULL THEN 1 END) as sin_novedad
+                FROM registros r
+                WHERE r.fecha >= CURRENT_DATE - INTERVAL '30 days'
+                GROUP BY DATE(r.fecha)
+                ORDER BY fecha ASC
+            `),
+            
+            // Registros por ruta
+            pool.query(`
+                SELECT 
+                    COALESCE(rt.nombre, 'Sin ruta') as nombre,
+                    COUNT(r.id) as cantidad
+                FROM registros r 
+                LEFT JOIN rutas rt ON r.ruta_id = rt.id 
+                ${dateFilter}
+                GROUP BY rt.nombre
+                ORDER BY cantidad DESC 
+                LIMIT 10
+            `, params),
+            
+            // Conductores más activos
+            pool.query(`
+                SELECT 
+                    c.nombre,
+                    c.cedula,
+                    COUNT(r.id) as total_registros,
+                    COUNT(CASE WHEN r.tipo_novedad_id IS NOT NULL THEN 1 END) as con_novedades
+                FROM registros r 
+                JOIN conductores c ON r.conductor_id = c.id 
+                ${dateFilter}
+                GROUP BY c.id, c.nombre, c.cedula
+                ORDER BY total_registros DESC 
+                LIMIT 10
+            `, params),
+            
+            // Vehículos más usados
+            pool.query(`
+                SELECT 
+                    r.vehiculo,
+                    COUNT(*) as cantidad,
+                    COUNT(CASE WHEN r.tipo_novedad_id IS NOT NULL THEN 1 END) as con_novedades
+                FROM registros r 
+                ${dateFilter}
+                GROUP BY r.vehiculo
+                ORDER BY cantidad DESC 
+                LIMIT 10
+            `, params),
+            
+            // Horas pico (distribución por hora de inicio)
+            pool.query(`
+                SELECT 
+                    EXTRACT(HOUR FROM r.hora_inicio) as hora,
+                    COUNT(*) as cantidad
+                FROM registros r 
+                ${dateFilter}
+                GROUP BY EXTRACT(HOUR FROM r.hora_inicio)
+                ORDER BY hora
+            `, params),
+            
+            // Novedades por severidad
+            pool.query(`
+                SELECT 
+                    tn.severidad,
+                    COUNT(r.id) as cantidad
+                FROM registros r 
+                JOIN tipo_novedades tn ON r.tipo_novedad_id = tn.id 
+                ${dateFilter}
+                GROUP BY tn.severidad
+                ORDER BY 
+                    CASE tn.severidad
+                        WHEN 'critica' THEN 1
+                        WHEN 'alta' THEN 2
+                        WHEN 'media' THEN 3
+                        WHEN 'baja' THEN 4
+                    END
+            `, params),
+            
+            // Últimos 5 registros
+            pool.query(`
+                SELECT 
+                    r.id,
+                    r.fecha,
+                    r.hora_inicio,
+                    r.vehiculo,
+                    e.nombre as empresa,
+                    c.nombre as conductor,
+                    tn.nombre as novedad,
+                    tn.severidad,
+                    tn.color
+                FROM registros r
+                JOIN empresas e ON r.empresa_id = e.id
+                LEFT JOIN conductores c ON r.conductor_id = c.id
+                LEFT JOIN tipo_novedades tn ON r.tipo_novedad_id = tn.id
+                ORDER BY r.fecha DESC, r.hora_inicio DESC
+                LIMIT 5
+            `)
+        ]);
+        
+        res.json({
+            success: true,
+            stats: {
+                registros: parseInt(registrosCount.rows[0].total),
+                conductores: parseInt(conductoresCount.rows[0].total),
+                empresas: parseInt(empresasCount.rows[0].total),
+                novedades: parseInt(novedadesCount.rows[0].total)
+            },
+            registrosPorEmpresa: registrosPorEmpresa.rows,
+            registrosPorNovedad: registrosPorNovedad.rows,
+            registrosPorDia: registrosPorDia.rows,
+            registrosPorRuta: registrosPorRuta.rows,
+            conductoresActivos: conductoresActivos.rows,
+            vehiculosMasUsados: vehiculosMasUsados.rows,
+            horasPico: horasPico.rows,
+            novedadesPorSeveridad: novedadesPorSeveridad.rows,
+            ultimosRegistros: ultimosRegistros.rows
+        });
+    } catch (error) {
+        console.error('Error al obtener stats avanzadas:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// GET comparativa mensual
+app.get('/api/stats/monthly-comparison', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                TO_CHAR(fecha, 'YYYY-MM') as mes,
+                COUNT(*) as total_registros,
+                COUNT(CASE WHEN tipo_novedad_id IS NOT NULL THEN 1 END) as con_novedades,
+                COUNT(DISTINCT conductor_id) as conductores_unicos,
+                COUNT(DISTINCT vehiculo) as vehiculos_unicos
+            FROM registros
+            WHERE fecha >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY TO_CHAR(fecha, 'YYYY-MM')
+            ORDER BY mes DESC
+        `);
+        
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error al obtener comparativa mensual:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
+// GET rendimiento por empresa (detalles)
+app.get('/api/stats/company-performance', authenticateToken, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                e.id,
+                e.nombre,
+                e.prefijo,
+                COUNT(r.id) as total_registros,
+                COUNT(CASE WHEN r.tipo_novedad_id IS NOT NULL THEN 1 END) as con_novedades,
+                ROUND(
+                    (COUNT(CASE WHEN r.tipo_novedad_id IS NOT NULL THEN 1 END)::decimal / 
+                    NULLIF(COUNT(r.id), 0) * 100), 2
+                ) as porcentaje_novedades,
+                COUNT(DISTINCT r.conductor_id) as conductores_unicos,
+                COUNT(DISTINCT r.vehiculo) as vehiculos_unicos
+            FROM empresas e
+            LEFT JOIN registros r ON e.id = r.empresa_id 
+                AND r.fecha >= CURRENT_DATE - INTERVAL '30 days'
+            WHERE e.activo = true
+            GROUP BY e.id, e.nombre, e.prefijo
+            ORDER BY total_registros DESC
+        `);
+        
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error('Error al obtener rendimiento de empresas:', error);
+        res.status(500).json({ success: false, error: 'Error del servidor' });
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Servidor de TransControl escuchando en puerto ${PORT}`);
 });
 
 module.exports = app;
+
+
+

@@ -92,13 +92,17 @@ export default function RegistrosPage() {
     if (filters.fechaInicio && r.fecha < filters.fechaInicio) return false;
     if (filters.fechaFin && r.fecha > filters.fechaFin) return false;
     if (filters.empresa && r.empresa_id !== parseInt(filters.empresa)) return false;
+    if (filters.vehiculo && !r.vehiculo.toLowerCase().includes(filters.vehiculo.toLowerCase())) return false;
+    if (filters.tabla && !r.tabla.toLowerCase().includes(filters.tabla.toLowerCase())) return false;
+    if (filters.horaInicio && r.hora_inicio < filters.horaInicio) return false;
+    if (filters.horaFin && r.hora_fin > filters.horaFin) return false;
     return true;
   });
 
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-xl font-semibold">📋 Registros de Conductores</h2>
+        <h2 className="text-xl font-semibold">Registros de Conductores</h2>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
             <Filter className="w-4 h-4" /> Filtros
@@ -165,17 +169,18 @@ export default function RegistrosPage() {
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase">Ruta</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase">Conductor</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase">Horario</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase"># Servicios</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-slate-400 uppercase">Novedad</th>
                 <th className="text-right px-6 py-3 text-xs font-semibold text-slate-400 uppercase">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan="9" className="px-6 py-8 text-center text-slate-500">Cargando...</td></tr>
-              ) : registros.length === 0 ? (
-                <tr><td colSpan="9" className="px-6 py-8 text-center text-slate-500">No hay registros</td></tr>
+                <tr><td colSpan="10" className="px-6 py-8 text-center text-slate-500">Cargando...</td></tr>
+              ) : filteredRegistros.length === 0 ? (
+                <tr><td colSpan="10" className="px-6 py-8 text-center text-slate-500">No hay registros</td></tr>
               ) : (
-                registros.map((item) => (
+                filteredRegistros.map((item) => (
                   <tr key={item.id} className="border-b border-slate-700/30 hover:bg-slate-800/30 transition-colors">
                     <td className="px-6 py-4 text-sm">{formatDate(item.fecha)}</td>
                     <td className="px-6 py-4 font-medium">{item.vehiculo}</td>
@@ -184,9 +189,10 @@ export default function RegistrosPage() {
                     <td className="px-6 py-4 text-slate-400 text-sm">{item.ruta_nombre || '-'}</td>
                     <td className="px-6 py-4 text-slate-400 text-sm">{item.conductor_nombre || '-'}</td>
                     <td className="px-6 py-4 text-slate-400 text-sm">{item.hora_inicio} - {item.hora_fin}</td>
-                    <td className="px-6 py-4 text-slate-400 text-sm max-w-[150px] truncate">{item.novedad_nombre || '-'}</td>
+                    <td className="px-6 py-4 text-slate-400 text-sm font-medium">{item.servicio || '-'}</td>
+                    <td className="px-6 py-4 text-slate-400 text-sm max-w-37.5 truncate">{item.novedad_nombre || '-'}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end">
+                      <div className="flex items-center justify-end gap-1">
                         <button onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -201,7 +207,7 @@ export default function RegistrosPage() {
         
         {/* Footer con contador y paginación */}
         <div className="px-6 py-4 border-t border-slate-700/50 flex items-center justify-between text-sm text-slate-500">
-          <span>Mostrando {registros.length} de {pagination.total} registros</span>
+          <span>Mostrando {filteredRegistros.length} de {pagination.total} registros</span>
           <div className="flex gap-2">
             <Button 
               variant="ghost" 

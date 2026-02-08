@@ -47,9 +47,6 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Logo */}
         <div className="p-4 border-b border-slate-700/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-xl">
-              🚌
-            </div>
             <span className="font-semibold text-lg">TransControl</span>
           </div>
         </div>
@@ -105,7 +102,7 @@ export default function Sidebar({ isOpen, onClose }) {
         {/* Footer - Usuario */}
         <div className="p-4 border-t border-slate-700/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-indigo-500 rounded-full flex items-center justify-center font-semibold text-sm">
+            <div className="w-10 h-10 bg-linear-to-br from-cyan-500 to-indigo-500 rounded-full flex items-center justify-center font-semibold text-sm">
               {user?.username?.substring(0, 2).toUpperCase() || 'AD'}
             </div>
             <div className="flex-1">

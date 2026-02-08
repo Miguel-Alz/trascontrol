@@ -42,7 +42,7 @@ export default function LoginPage() {
         <div className="glass-card rounded-2xl p-8 shadow-2xl animate-slideIn">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+            <div className="w-16 h-16 bg-linear-to-br from-indigo-500 to-purple-500 rounded-xl mx-auto mb-4 flex items-center justify-center shadow-lg shadow-indigo-500/30">
               <Lock className="w-8 h-8 text-white" />
             </div>
             <h1 className="text-2xl font-bold mb-2">Iniciar Sesión</h1>

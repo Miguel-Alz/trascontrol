@@ -87,7 +87,7 @@ export default function RutasPage() {
   return (
     <div className="space-y-6 animate-fadeIn">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <h2 className="text-xl font-semibold">🛣️ Gestión de Rutas</h2>
+        <h2 className="text-xl font-semibold">Gestión de Rutas</h2>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => setShowFilters(!showFilters)}>
             <Filter className="w-4 h-4" /> Filtros

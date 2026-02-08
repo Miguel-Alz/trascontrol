@@ -29,8 +29,8 @@ export default function FormularioPage() {
     observaciones: '',
   });
 
-  const [searchTerms, setSearchTerms] = useState({ empresa: '', ruta: '', conductor: '' });
-  const [dropdowns, setDropdowns] = useState({ empresa: false, ruta: false, conductor: false });
+  const [searchTerms, setSearchTerms] = useState({ empresa: '', ruta: '', conductor: '', novedad: '' });
+  const [dropdowns, setDropdowns] = useState({ empresa: false, ruta: false, conductor: false, novedad: false });
 
   useEffect(() => {
     loadData();
@@ -91,7 +91,7 @@ export default function FormularioPage() {
       conductor_id: '', hora_inicio: '', hora_fin: '', servicio: '',
       tipo_novedad_id: '', observaciones: '',
     });
-    setSearchTerms({ empresa: '', ruta: '', conductor: '' });
+    setSearchTerms({ empresa: '', ruta: '', conductor: '', novedad: '' });
     setShowSuccess(false);
   };
 
@@ -113,9 +113,16 @@ export default function FormularioPage() {
     setDropdowns({ ...dropdowns, conductor: false });
   };
 
+  const selectNovedad = (novedad) => {
+    setFormData({ ...formData, tipo_novedad_id: novedad.id });
+    setSearchTerms({ ...searchTerms, novedad: novedad.nombre });
+    setDropdowns({ ...dropdowns, novedad: false });
+  };
+
   const filteredEmpresas = empresas.filter(e => e.nombre.toLowerCase().includes(searchTerms.empresa.toLowerCase()));
-  const filteredRutas = rutas.filter(r => r.nombre.toLowerCase().includes(searchTerms.ruta.toLowerCase()));
+  const filteredRutas = rutas.filter(r => r.nombre.toLowerCase().includes(searchTerms.ruta.toLowerCase()) || (r.numero && r.numero.toString().includes(searchTerms.ruta)));
   const filteredConductores = conductores.filter(c => c.nombre.toLowerCase().includes(searchTerms.conductor.toLowerCase()));
+  const filteredNovedades = novedades.filter(n => n.nombre.toLowerCase().includes(searchTerms.novedad.toLowerCase()));
 
   if (showSuccess) {
     return (
@@ -138,10 +145,10 @@ export default function FormularioPage() {
       <header className="glass border-b border-slate-700/50">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-xl">🚌</div>
+            <div className="w-10 h-10 bg-linear-to-br from-indigo-500 to-purple-500 rounded-lg flex items-center justify-center text-xl">🚌</div>
             <div>
               <div className="font-semibold">TransControl</div>
-              <div className="text-xs text-slate-400">Sistema de Registro</div>
+              <div className="text-xs text-slate-400">Sistema de Control de Rutas</div>
             </div>
           </div>
           <Link to="/login" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
@@ -219,7 +226,7 @@ export default function FormularioPage() {
               <Input label="Vehículo" value={formData.vehiculo} onChange={(e) => setFormData({ ...formData, vehiculo: e.target.value })} placeholder="Ej: UC-001" required />
 
               {/* Tabla */}
-              <Input label="Tabla" value={formData.tabla} onChange={(e) => setFormData({ ...formData, tabla: e.target.value })} placeholder="Ej: T-101" required />
+              <Input label="Tabla" value={formData.tabla} onChange={(e) => setFormData({ ...formData, tabla: e.target.value })} placeholder="Ej: 1, 2..." required />
 
               {/* Conductor */}
               <div className="space-y-1 relative">
@@ -252,12 +259,29 @@ export default function FormularioPage() {
               <Input label="Servicio" type="number" value={formData.servicio} onChange={(e) => setFormData({ ...formData, servicio: e.target.value })} placeholder="Ej: 1, 2..." />
 
               {/* Novedad */}
-              <div className="space-y-1">
+              <div className="space-y-1 relative">
                 <label className="block text-sm font-medium text-slate-400">Tipo de Novedad</label>
-                <select value={formData.tipo_novedad_id} onChange={(e) => setFormData({ ...formData, tipo_novedad_id: e.target.value })} className="w-full px-4 py-2.5 rounded-lg input-dark">
-                  <option value="">Sin novedad</option>
-                  {novedades.map(n => <option key={n.id} value={n.id}>{n.nombre}</option>)}
-                </select>
+                <input
+                  type="text"
+                  value={searchTerms.novedad}
+                  onChange={(e) => { setSearchTerms({ ...searchTerms, novedad: e.target.value }); setDropdowns({ ...dropdowns, novedad: true }); }}
+                  onFocus={() => setDropdowns({ ...dropdowns, novedad: true })}
+                  className="w-full px-4 py-2.5 rounded-lg input-dark"
+                  placeholder="Buscar novedad..."
+                />
+                {dropdowns.novedad && searchTerms.novedad && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-auto">
+                    {filteredNovedades.length === 0 ? (
+                      <div className="p-3 text-slate-500 text-sm">No hay resultados</div>
+                    ) : (
+                      filteredNovedades.map(n => (
+                        <button key={n.id} type="button" onClick={() => selectNovedad(n)} className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors">
+                          <div className="font-medium">{n.nombre}</div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Observaciones */}
@@ -282,7 +306,7 @@ export default function FormularioPage() {
 
       {/* Footer */}
       <footer className="text-center py-4 text-slate-500 text-sm">
-        © 2024 TransControl - Sistema de Registro de Conductores
+        © 2026 TransControl - Sistema de Control de Rutas
       </footer>
     </div>
   );
