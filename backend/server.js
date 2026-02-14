@@ -173,8 +173,8 @@ app.post('/api/public/registros', async (req, res) => {
         }
 
         const result = await pool.query(
-            'INSERT INTO registros (fecha, empresa_id, ruta_id, conductor_id, vehiculo, tabla, hora_inicio, hora_fin, servicio, tipo_novedad_id, observaciones) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *',
-            [fecha, empresa_id, ruta_id || null, conductor_id || null, vehiculo, tabla, hora_inicio, hora_fin, servicio || null, tipo_novedad_id || null, observaciones || null, 0]
+            'INSERT INTO registros (fecha, empresa_id, ruta_id, conductor_id, vehiculo, tabla, hora_inicio, hora_fin, servicio, tipo_novedad_id, observaciones) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *',
+            [fecha, empresa_id, ruta_id || null, conductor_id || null, vehiculo, tabla, hora_inicio, hora_fin, servicio || null, tipo_novedad_id || null, observaciones || null]
         );
         res.status(201).json({ success: true, data: result.rows[0] });
     } catch (error) {
