@@ -107,8 +107,8 @@ export default function RegistrosPage() {
         r.tabla,
         r.ruta_nombre || '-',
         r.conductor_nombre || '-',
-        r.hora_inicio,
-        r.hora_fin,
+        formatTime(r.hora_inicio),
+        formatTime(r.hora_fin),
         r.servicio || '-',
         r.novedad_nombre || '-'
       ].join(','))
@@ -136,8 +136,8 @@ export default function RegistrosPage() {
       r.tabla,
       r.ruta_nombre || '-',
       r.conductor_nombre || '-',
-      r.hora_inicio,
-      r.hora_fin,
+      formatTime(r.hora_inicio),
+      formatTime(r.hora_fin),
       r.servicio || '-',
       r.novedad_nombre || '-'
     ]);
@@ -177,10 +177,28 @@ export default function RegistrosPage() {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
-      const date = new Date(dateString.split('T')[0]);
+      // Tomar solo YYYY-MM-DD y construir fecha local
+      // para evitar el desfase UTC → Colombia (−5h)
+      const [year, month, day] = (dateString.split('T')[0]).split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       return date.toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
     } catch {
       return '-';
+    }
+  };
+
+  // Convierte "HH:MM" o "HH:MM:SS" (formato 24h de la BD) a "H:MM AM/PM"
+  const formatTime = (timeString) => {
+    if (!timeString) return '-';
+    try {
+      const [hStr, mStr] = timeString.split(':');
+      const h = parseInt(hStr, 10);
+      const m = mStr || '00';
+      const suffix = h < 12 ? 'AM' : 'PM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}:${m} ${suffix}`;
+    } catch {
+      return timeString;
     }
   };
 
@@ -363,7 +381,7 @@ export default function RegistrosPage() {
                     <td className="px-6 py-4 text-slate-400">{item.tabla}</td>
                     <td className="px-6 py-4 text-slate-400 text-sm">{item.ruta_nombre || '-'}</td>
                     <td className="px-6 py-4 text-slate-400 text-sm">{item.conductor_nombre || '-'}</td>
-                    <td className="px-6 py-4 text-slate-400 text-sm">{item.hora_inicio} - {item.hora_fin}</td>
+                    <td className="px-6 py-4 text-slate-400 text-sm">{formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}</td>
                     <td className="px-6 py-4 text-slate-400 text-sm font-medium">{item.servicio || '-'}</td>
                     <td className="px-6 py-4 text-sm max-w-37.5">
                       {item.novedad_nombre ? (

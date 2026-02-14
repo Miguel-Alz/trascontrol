@@ -138,13 +138,31 @@ export default function DashboardPage() {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     try {
-      const date = new Date(dateString);
+      // Tomar solo la parte de fecha (YYYY-MM-DD) y construir
+      // la fecha como local para evitar el desfase UTC → Colombia
+      const [year, month, day] = (dateString.split('T')[0]).split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       return date.toLocaleDateString('es-CO', {
         day: '2-digit',
         month: 'short'
       });
     } catch {
       return '-';
+    }
+  };
+
+  // Convierte "HH:MM" o "HH:MM:SS" (formato 24h de la BD) a "H:MM AM/PM"
+  const formatTime = (timeString) => {
+    if (!timeString) return '-';
+    try {
+      const [hStr, mStr] = timeString.split(':');
+      const h = parseInt(hStr, 10);
+      const m = mStr || '00';
+      const suffix = h < 12 ? 'AM' : 'PM';
+      const h12 = h % 12 === 0 ? 12 : h % 12;
+      return `${h12}:${m} ${suffix}`;
+    } catch {
+      return timeString;
     }
   };
 
@@ -379,12 +397,24 @@ export default function DashboardPage() {
                 <XAxis 
                   dataKey="hora" 
                   stroke="#94a3b8"
-                  tickFormatter={(value) => `${value}:00`}
+                  tickFormatter={(value) => {
+                    const h = parseInt(value, 10);
+                    if (isNaN(h)) return value;
+                    const suffix = h < 12 ? 'AM' : 'PM';
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    return `${h12} ${suffix}`;
+                  }}
                 />
                 <YAxis stroke="#94a3b8" />
                 <Tooltip 
                   content={<CustomTooltip />}
-                  labelFormatter={(value) => `${value}:00 hrs`}
+                  labelFormatter={(value) => {
+                    const h = parseInt(value, 10);
+                    if (isNaN(h)) return value;
+                    const suffix = h < 12 ? 'AM' : 'PM';
+                    const h12 = h % 12 === 0 ? 12 : h % 12;
+                    return `${h12}:00 ${suffix}`;
+                  }}
                 />
                 <Bar dataKey="cantidad" fill="#8b5cf6" radius={[4, 4, 0, 0]} name="Registros" />
               </BarChart>
@@ -519,7 +549,7 @@ export default function DashboardPage() {
                   <tr key={registro.id} className="border-b border-slate-800 hover:bg-slate-800/30">
                     <td className="py-3 px-4 text-slate-300 text-sm">
                       {formatDate(registro.fecha)}
-                      <span className="text-slate-500 ml-2">{registro.hora_inicio?.slice(0, 5)}</span>
+                      <span className="text-slate-500 ml-2">{formatTime(registro.hora_inicio)}</span>
                     </td>
                     <td className="py-3 px-4 text-slate-300 text-sm">{registro.empresa}</td>
                     <td className="py-3 px-4 text-slate-300 text-sm">{registro.conductor || '-'}</td>
