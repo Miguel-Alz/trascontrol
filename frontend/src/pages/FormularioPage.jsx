@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, RotateCcw, User, Loader2 } from 'lucide-react';
 import { publicAPI } from '../services/api';
@@ -31,6 +31,7 @@ export default function FormularioPage() {
 
   const [searchTerms, setSearchTerms] = useState({ empresa: '', ruta: '', conductor: '', novedad: '' });
   const [dropdowns, setDropdowns] = useState({ empresa: false, ruta: false, conductor: false, novedad: false });
+  const formRef = useRef(null);
 
   useEffect(() => {
     loadData();
@@ -39,6 +40,24 @@ export default function FormularioPage() {
     const minutes = Math.round(now.getMinutes() / 15) * 15;
     const hora = `${String(now.getHours()).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
     setFormData(prev => ({ ...prev, hora_inicio: hora }));
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (formRef.current && !formRef.current.contains(event.target)) {
+        // Click fuera del formulario: cierra todo
+        setDropdowns({ empresa: false, ruta: false, conductor: false, novedad: false });
+      } else {
+        // Click dentro del formulario: cierra si no es en un input de dropdown
+        const clickedDropdownInput = event.target.closest('[data-dropdown]');
+        if (!clickedDropdownInput) {
+          setDropdowns({ empresa: false, ruta: false, conductor: false, novedad: false });
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const loadData = async () => {
@@ -60,9 +79,9 @@ export default function FormularioPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validación básica
-    if (!formData.fecha || !formData.empresa_id || !formData.vehiculo || !formData.tabla || !formData.hora_inicio || !formData.hora_fin) {
+    if (!formData.fecha || !formData.empresa_id || !formData.ruta_id || !formData.vehiculo || !formData.tabla || !formData.conductor_id || !formData.hora_inicio || !formData.hora_fin) {
       toast.error('Error', 'Complete todos los campos requeridos');
       return;
     }
@@ -151,37 +170,38 @@ export default function FormularioPage() {
             </div>
           </div>
           <Link to="/login" className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors">
-            <User className="w-5 h-5" /> <span className="hidden sm:inline">Panel Admin</span>
+            <User className="w-5 h-5" /> <span className="hidden sm:inline">Iniciar Sesión</span>
           </Link>
         </div>
       </header>
 
       {/* Form */}
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="glass-card rounded-2xl p-6 lg:p-8">
+        <div ref={formRef} className="glass-card rounded-2xl p-6 lg:p-8">
           <div className="mb-6">
-            <h1 className="text-xl font-bold mb-1">📋 Registro Diario</h1>
+            <h1 className="text-xl font-bold mb-1">Formulario de Registro</h1>
             <p className="text-slate-400 text-sm">Complete la información del servicio de transporte</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Fecha */}
               <Input label="Fecha" type="date" value={formData.fecha} onChange={(e) => setFormData({ ...formData, fecha: e.target.value })} required />
 
               {/* Empresa */}
-              <div className="space-y-1 relative">
+              <div className="space-y-1 relative" data-dropdown="empresa">
                 <label className="block text-sm font-medium text-slate-400">Empresa <span className="text-red-400">*</span></label>
                 <input
+                  data-dropdown="empresa"
                   type="text"
                   value={searchTerms.empresa}
                   onChange={(e) => { setSearchTerms({ ...searchTerms, empresa: e.target.value }); setDropdowns({ ...dropdowns, empresa: true }); }}
-                  onFocus={() => setDropdowns({ ...dropdowns, empresa: true })}
+                  onFocus={() => setDropdowns({ empresa: true, ruta: false, conductor: false, novedad: false })}
                   className="w-full px-4 py-2.5 rounded-lg input-dark"
                   placeholder="Buscar empresa..."
                 />
-                {dropdowns.empresa && searchTerms.empresa && (
-                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-auto">
+                {dropdowns.empresa && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-44 overflow-y-auto">
                     {filteredEmpresas.length === 0 ? (
                       <div className="p-3 text-slate-500 text-sm">No hay resultados</div>
                     ) : (
@@ -196,18 +216,19 @@ export default function FormularioPage() {
               </div>
 
               {/* Ruta */}
-              <div className="space-y-1 relative">
-                <label className="block text-sm font-medium text-slate-400">Ruta</label>
+              <div className="space-y-1 relative" data-dropdown="ruta">
+                <label className="block text-sm font-medium text-slate-400">Ruta <span className="text-red-400">*</span></label>
                 <input
+                  data-dropdown="ruta"
                   type="text"
                   value={searchTerms.ruta}
                   onChange={(e) => { setSearchTerms({ ...searchTerms, ruta: e.target.value }); setDropdowns({ ...dropdowns, ruta: true }); }}
-                  onFocus={() => setDropdowns({ ...dropdowns, ruta: true })}
+                  onFocus={() => setDropdowns({ empresa: false, ruta: true, conductor: false, novedad: false })}
                   className="w-full px-4 py-2.5 rounded-lg input-dark"
                   placeholder="Buscar ruta..."
                 />
-                {dropdowns.ruta && searchTerms.ruta && (
-                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-auto">
+                {dropdowns.ruta && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-44 overflow-y-auto">
                     {filteredRutas.length === 0 ? (
                       <div className="p-3 text-slate-500 text-sm">No hay resultados</div>
                     ) : (
@@ -228,24 +249,29 @@ export default function FormularioPage() {
               <Input label="Tabla" value={formData.tabla} onChange={(e) => setFormData({ ...formData, tabla: e.target.value })} placeholder="Ej: 1, 2..." required />
 
               {/* Conductor */}
-              <div className="space-y-1 relative">
-                <label className="block text-sm font-medium text-slate-400">Conductor</label>
+              <div className="space-y-1 relative" data-dropdown="conductor">
+                <label className="block text-sm font-medium text-slate-400">Conductor <span className="text-red-400">*</span></label>
                 <input
+                  data-dropdown="conductor"
                   type="text"
                   value={searchTerms.conductor}
                   onChange={(e) => { setSearchTerms({ ...searchTerms, conductor: e.target.value }); setDropdowns({ ...dropdowns, conductor: true }); }}
-                  onFocus={() => setDropdowns({ ...dropdowns, conductor: true })}
+                  onFocus={() => setDropdowns({ empresa: false, ruta: false, conductor: true, novedad: false })}
                   className="w-full px-4 py-2.5 rounded-lg input-dark"
                   placeholder="Buscar conductor..."
                 />
-                {dropdowns.conductor && searchTerms.conductor && (
-                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-auto">
-                    {filteredConductores.map(c => (
-                      <button key={c.id} type="button" onClick={() => selectConductor(c)} className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors">
-                        <div className="font-medium">{c.nombre}</div>
-                        {c.cedula && <div className="text-xs text-slate-400">Cédula: {c.cedula}</div>}
-                      </button>
-                    ))}
+                {dropdowns.conductor && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-44 overflow-y-auto">
+                    {filteredConductores.length === 0 ? (
+                      <div className="p-3 text-slate-500 text-sm">No hay resultados</div>
+                    ) : (
+                      filteredConductores.map(c => (
+                        <button key={c.id} type="button" onClick={() => selectConductor(c)} className="w-full text-left px-4 py-2 hover:bg-slate-700 transition-colors">
+                          <div className="font-medium">{c.nombre}</div>
+                          {c.cedula && <div className="text-xs text-slate-400">Cédula: {c.cedula}</div>}
+                        </button>
+                      ))
+                    )}
                   </div>
                 )}
               </div>
@@ -258,18 +284,19 @@ export default function FormularioPage() {
               <Input label="Servicio" type="number" value={formData.servicio} onChange={(e) => setFormData({ ...formData, servicio: e.target.value })} placeholder="Ej: 1, 2..." />
 
               {/* Novedad */}
-              <div className="space-y-1 relative">
+              <div className="space-y-1 relative" data-dropdown="novedad">
                 <label className="block text-sm font-medium text-slate-400">Tipo de Novedad</label>
                 <input
+                  data-dropdown="novedad"
                   type="text"
                   value={searchTerms.novedad}
                   onChange={(e) => { setSearchTerms({ ...searchTerms, novedad: e.target.value }); setDropdowns({ ...dropdowns, novedad: true }); }}
-                  onFocus={() => setDropdowns({ ...dropdowns, novedad: true })}
+                  onFocus={() => setDropdowns({ empresa: false, ruta: false, conductor: false, novedad: true })}
                   className="w-full px-4 py-2.5 rounded-lg input-dark"
                   placeholder="Buscar novedad..."
                 />
-                {dropdowns.novedad && searchTerms.novedad && (
-                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-48 overflow-auto">
+                {dropdowns.novedad && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-h-44 overflow-y-auto">
                     {filteredNovedades.length === 0 ? (
                       <div className="p-3 text-slate-500 text-sm">No hay resultados</div>
                     ) : (
@@ -291,11 +318,11 @@ export default function FormularioPage() {
             </div>
 
             {/* Botones */}
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Button variant="secondary" type="button" onClick={resetForm} className="flex-1 sm:flex-none">
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="secondary" type="button" onClick={resetForm}>
                 <RotateCcw className="w-4 h-4" /> Limpiar
               </Button>
-              <Button type="submit" isLoading={isSubmitting} className="flex-1">
+              <Button type="submit" isLoading={isSubmitting}>
                 {isSubmitting ? 'Enviando...' : 'Enviar Registro'}
               </Button>
             </div>
