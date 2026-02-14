@@ -651,7 +651,7 @@ app.get('/api/registros', authenticateToken, async (req, res) => {
         const offset = (page - 1) * limit;
         const { fechaInicio, fechaFin, empresa, vehiculo, tabla, horaInicio, horaFin } = req.query;
         
-        let query = `SELECT r.*, e.nombre as empresa_nombre, rt.nombre as ruta_nombre, c.nombre as conductor_nombre, tn.nombre as novedad_nombre
+        let query = `SELECT r.*, e.nombre as empresa_nombre, rt.nombre as ruta_nombre, c.nombre as conductor_nombre, tn.nombre as novedad_nombre, tn.color
             FROM registros r
             LEFT JOIN empresas e ON r.empresa_id = e.id
             LEFT JOIN rutas rt ON r.ruta_id = rt.id

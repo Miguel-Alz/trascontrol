@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Download, Trash2, Filter, X } from 'lucide-react';
+import { Download, Trash2, Filter, X, Pencil } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { registrosAPI, empresasAPI } from '../services/api';
 import { useToast } from '../context/ToastContext';
 import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Modal from '../components/ui/Modal';
 
 const SEVERITY_COLORS = {
   critica: '#ef4444',
@@ -18,10 +20,14 @@ export default function RegistrosPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [filters, setFilters] = useState({ fechaInicio: '', fechaFin: '', empresa: '', vehiculo: '', tabla: '', horaInicio: '', horaFin: '' });
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [filters, setFilters] = useState({ fechaInicio: '', fechaFin: '', empresa: '', vehiculo: '', tabla: '', horaInicio: '', horaFin: '', conductor: '', ruta: '', novedad: '' });
+  const [formData, setFormData] = useState({ fecha: '', vehiculo: '', tabla: '', hora_inicio: '', hora_fin: '', servicio: '', empresa_id: '', ruta_id: '', conductor_id: '', novedad_id: '' });
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, totalPages: 1 });
-  const [searchTerms, setSearchTerms] = useState({ empresa: '' });
-  const [dropdowns, setDropdowns] = useState({ empresa: false });
+  const [searchTerms, setSearchTerms] = useState({ empresa: '', conductor: '', ruta: '', novedad: '' });
+  const [dropdowns, setDropdowns] = useState({ empresa: false, conductor: false, ruta: false, novedad: false });
   const toast = useToast();
 
   useEffect(() => { loadData(); }, [pagination.page, filters]);
@@ -91,13 +97,20 @@ export default function RegistrosPage() {
       toast.error('Error', 'No hay datos para exportar');
       return;
     }
-    const headers = ['Fecha', 'Vehículo', 'Tabla', 'Hora Inicio', 'Hora Fin', 'Servicio', 'Observaciones'];
+    const headers = ['Fecha', 'Vehículo', 'Empresa', 'Tabla', 'Ruta', 'Conductor', 'Hora Inicio', 'Hora Fin', '# Servicios', 'Novedad'];
     const csvContent = [
       headers.join(','),
       ...registrosToExport.map(r => [
-        r.fecha, r.vehiculo, r.tabla, r.hora_inicio, r.hora_fin,
-        `"${(r.servicio || '').replace(/"/g, '""')}"`,
-        `"${(r.observaciones || '').replace(/"/g, '""')}"`
+        formatDate(r.fecha),
+        r.vehiculo,
+        r.empresa_nombre || '-',
+        r.tabla,
+        r.ruta_nombre || '-',
+        r.conductor_nombre || '-',
+        r.hora_inicio,
+        r.hora_fin,
+        r.servicio || '-',
+        r.novedad_nombre || '-'
       ].join(','))
     ].join('\n');
     
@@ -117,7 +130,7 @@ export default function RegistrosPage() {
 
     const headers = ['Fecha', 'Vehículo', 'Empresa', 'Tabla', 'Ruta', 'Conductor', 'Hora Inicio', 'Hora Fin', '# Servicios', 'Novedad'];
     const data = registrosToExport.map(r => [
-      r.fecha,
+      formatDate(r.fecha),
       r.vehiculo,
       r.empresa_nombre || '-',
       r.tabla,
@@ -179,6 +192,9 @@ export default function RegistrosPage() {
     if (filters.tabla && !r.tabla.toLowerCase().includes(filters.tabla.toLowerCase())) return false;
     if (filters.horaInicio && r.hora_inicio < filters.horaInicio) return false;
     if (filters.horaFin && r.hora_fin > filters.horaFin) return false;
+    if (filters.conductor && r.conductor_nombre && !r.conductor_nombre.toLowerCase().includes(filters.conductor.toLowerCase())) return false;
+    if (filters.ruta && r.ruta_nombre && !r.ruta_nombre.toLowerCase().includes(filters.ruta.toLowerCase())) return false;
+    if (filters.novedad && r.novedad_nombre && !r.novedad_nombre.toLowerCase().includes(filters.novedad.toLowerCase())) return false;
     return true;
   });
 
@@ -254,6 +270,14 @@ export default function RegistrosPage() {
               <input type="text" value={filters.tabla} onChange={(e) => setFilters({ ...filters, tabla: e.target.value })} placeholder="Ej: 1, 2..." className="w-full px-3 py-2 rounded-lg input-dark" />
             </div>
             <div className="space-y-1">
+              <label className="text-sm text-slate-400">Conductor</label>
+              <input type="text" value={filters.conductor} onChange={(e) => setFilters({ ...filters, conductor: e.target.value })} placeholder="Buscar conductor..." className="w-full px-3 py-2 rounded-lg input-dark" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm text-slate-400">Ruta</label>
+              <input type="text" value={filters.ruta} onChange={(e) => setFilters({ ...filters, ruta: e.target.value })} placeholder="Buscar ruta..." className="w-full px-3 py-2 rounded-lg input-dark" />
+            </div>
+            <div className="space-y-1">
               <label className="text-sm text-slate-400">Hora Inicio</label>
               <input type="time" value={filters.horaInicio} onChange={(e) => setFilters({ ...filters, horaInicio: e.target.value })} className="w-full px-3 py-2 rounded-lg input-dark" />
             </div>
@@ -261,9 +285,13 @@ export default function RegistrosPage() {
               <label className="text-sm text-slate-400">Hora Fin</label>
               <input type="time" value={filters.horaFin} onChange={(e) => setFilters({ ...filters, horaFin: e.target.value })} className="w-full px-3 py-2 rounded-lg input-dark" />
             </div>
+            <div className="space-y-1">
+              <label className="text-sm text-slate-400">Tipo de Novedad</label>
+              <input type="text" value={filters.novedad} onChange={(e) => setFilters({ ...filters, novedad: e.target.value })} placeholder="Buscar novedad..." className="w-full px-3 py-2 rounded-lg input-dark" />
+            </div>
           </div>
           <div className="flex justify-end mt-4">
-            <Button variant="ghost" size="sm" onClick={() => { setFilters({ fechaInicio: '', fechaFin: '', empresa: '', vehiculo: '', tabla: '', horaInicio: '', horaFin: '' }); setPagination({...pagination, page: 1}); }}>
+            <Button variant="ghost" size="sm" onClick={() => { setFilters({ fechaInicio: '', fechaFin: '', empresa: '', vehiculo: '', tabla: '', horaInicio: '', horaFin: '', conductor: '', ruta: '', novedad: '' }); setPagination({...pagination, page: 1}); }}>
               Limpiar filtros
             </Button>
           </div>

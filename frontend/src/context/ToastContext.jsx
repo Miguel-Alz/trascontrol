@@ -53,7 +53,7 @@ export function ToastProvider({ children }) {
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-6 right-6 z-[9999] flex flex-col gap-2">
+      <div className="fixed top-6 right-6 z-9999 flex flex-col gap-2">
         {toasts.map((t) => {
           const Icon = toastIcons[t.type];
           return (
@@ -62,12 +62,12 @@ export function ToastProvider({ children }) {
               className={`
                 flex items-center gap-3 px-4 py-3
                 bg-slate-900 border border-slate-700/50 border-l-4
-                rounded-lg shadow-xl min-w-[300px] max-w-[450px]
+                rounded-lg shadow-xl min-w-75 max-w-112.5
                 animate-slideInRight
                 ${toastColors[t.type]}
               `}
             >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+              <Icon className="w-5 h-5 shrink-0" />
               <div className="flex-1">
                 <p className="font-semibold text-white text-sm">{t.title}</p>
                 {t.message && (
