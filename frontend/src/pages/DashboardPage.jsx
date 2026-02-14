@@ -87,16 +87,26 @@ export default function DashboardPage() {
       const performance = await performanceRes.json();
 
       console.log('Dashboard response:', dashboard);
+      console.log('registrosPorDia raw:', dashboard.registrosPorDia);
 
       if (dashboard.success) {
         setStats({
-          stats: dashboard.stats || {},
+          registros: dashboard.stats?.registros || 0,
+          conductores: dashboard.stats?.conductores || 0,
+          empresas: dashboard.stats?.empresas || 0,
+          novedades: dashboard.stats?.novedades || 0,
           registrosPorEmpresa: dashboard.registrosPorEmpresa || [],
           registrosPorNovedad: (dashboard.registrosPorNovedad || []).map(item => ({
             ...item,
             cantidad: parseInt(item.cantidad) || 0
           })),
-          registrosPorDia: dashboard.registrosPorDia || [],
+          registrosPorDia: (dashboard.registrosPorDia || [])
+            .map(item => ({
+              ...item,
+              total: parseInt(item.total) || 0,
+              con_novedad: parseInt(item.con_novedad) || 0
+            }))
+            .sort((a, b) => new Date(a.fecha) - new Date(b.fecha)),
           registrosPorRuta: dashboard.registrosPorRuta || [],
           conductoresActivos: dashboard.conductoresActivos || [],
           vehiculosMasUsados: dashboard.vehiculosMasUsados || [],
@@ -280,17 +290,21 @@ export default function DashboardPage() {
                 type="monotone" 
                 dataKey="total" 
                 stroke="#3b82f6" 
+                strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorTotal)"
                 name="Total"
+                connectNulls={true}
               />
               <Area 
                 type="monotone" 
                 dataKey="con_novedad" 
                 stroke="#f59e0b" 
+                strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorNovedad)"
                 name="Con Novedad"
+                connectNulls={true}
               />
             </AreaChart>
           </ResponsiveContainer>
