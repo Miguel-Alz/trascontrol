@@ -79,13 +79,13 @@ export default function DashboardPage() {
       }
 
       const [dashboardRes, monthlyRes, performanceRes] = await Promise.all([
-        fetch('/api/stats/dashboard-advanced', {
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/stats/dashboard-advanced`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('/api/stats/monthly-comparison', {
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/stats/monthly-comparison`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        fetch('/api/stats/company-performance', {
+        fetch(`${import.meta.env.VITE_API_BASE_URL}/stats/company-performance`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
       ]);
