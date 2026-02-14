@@ -69,14 +69,6 @@ export default function DashboardPage() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      
-      // Debug
-      console.log('Token encontrado:', token ? 'Sí' : 'No');
-      
-      if (!token) {
-        console.error('No hay token en localStorage');
-        return;
-      }
 
       const [dashboardRes, monthlyRes, performanceRes] = await Promise.all([
         fetch(`${import.meta.env.VITE_API_BASE_URL}/stats/dashboard-advanced`, {
@@ -90,17 +82,6 @@ export default function DashboardPage() {
         })
       ]);
 
-      // Verificar status codes
-      if (!dashboardRes.ok) {
-        console.error('Error en dashboard:', dashboardRes.status);
-      }
-      if (!monthlyRes.ok) {
-        console.error('Error en monthly:', monthlyRes.status);
-      }
-      if (!performanceRes.ok) {
-        console.error('Error en performance:', performanceRes.status);
-      }
-
       const dashboard = await dashboardRes.json();
       const monthly = await monthlyRes.json();
       const performance = await performanceRes.json();
@@ -108,11 +89,13 @@ export default function DashboardPage() {
       console.log('Dashboard response:', dashboard);
 
       if (dashboard.success) {
-        // CORRECCIÓN: Estructurar los datos correctamente
         setStats({
           stats: dashboard.stats || {},
           registrosPorEmpresa: dashboard.registrosPorEmpresa || [],
-          registrosPorNovedad: dashboard.registrosPorNovedad || [],
+          registrosPorNovedad: (dashboard.registrosPorNovedad || []).map(item => ({
+            ...item,
+            cantidad: parseInt(item.cantidad) || 0
+          })),
           registrosPorDia: dashboard.registrosPorDia || [],
           registrosPorRuta: dashboard.registrosPorRuta || [],
           conductoresActivos: dashboard.conductoresActivos || [],
@@ -120,7 +103,7 @@ export default function DashboardPage() {
           horasPico: dashboard.horasPico || [],
           novedadesPorSeveridad: dashboard.novedadesPorSeveridad || [],
           ultimosRegistros: dashboard.ultimosRegistros || []
-        });
+        });      
       }
       if (monthly.success) {
         setMonthlyData(monthly.data);
@@ -183,13 +166,15 @@ export default function DashboardPage() {
   };
 
   // Custom label para el pie chart
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, nombre }) => {
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
     if (percent < 0.05) return null; // No mostrar labels para segmentos muy pequeños
     
     const RADIAN = Math.PI / 180;
     const radius = outerRadius + 30;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    
+    const nombre = stats.registrosPorNovedad[index]?.nombre || '';
 
     return (
       <text 
