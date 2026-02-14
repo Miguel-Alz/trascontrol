@@ -86,11 +86,9 @@ export default function DashboardPage() {
       const monthly = await monthlyRes.json();
       const performance = await performanceRes.json();
 
-      console.log('Dashboard response:', dashboard);
-      console.log('registrosPorDia raw:', dashboard.registrosPorDia);
-
       if (dashboard.success) {
         setStats({
+          stats: dashboard.stats || {},
           registros: dashboard.stats?.registros || 0,
           conductores: dashboard.stats?.conductores || 0,
           empresas: dashboard.stats?.empresas || 0,
