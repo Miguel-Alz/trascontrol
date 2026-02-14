@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 // Crear instancia de axios con configuración base
 const api = axios.create({
@@ -38,7 +38,7 @@ api.interceptors.response.use(
 
 // Crear instancia de axios para endpoints públicos (sin interceptores)
 const publicApi = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
